@@ -47,25 +47,6 @@ function applyActivityPreset(kind) {
   if (dhf)  dhf.value  = p.dhf;
 }
 
-// Advanced toggle: show/hide advanced fields
-if (showAdvChk) {
-  showAdvChk.addEventListener('change', () => {
-    const card = document.getElementById('settingsCard');
-    card?.classList.toggle('show-adv', showAdvChk.checked);
-  });
-  // default hidden
-  showAdvChk.checked = false;
-  document.getElementById('settingsCard')?.classList.remove('show-adv');
-}
-
-// Apply activity preset on change + initial preset
-if (activitySel) {
-  activitySel.addEventListener('change', () => applyActivityPreset(activitySel.value));
-  applyActivityPreset(activitySel.value || 'hike');
-}
-
-
-
 // ---------- Global state ----------
 let map, tileLayer, polyline, markers = [];
 let trackLatLngs = [];        // [[lat, lon], ...] (resampled)
@@ -83,6 +64,9 @@ let legLabels = new Map();      // "a|b" -> custom leg name
 let legStopsMin = new Map();   // "a|b" -> minutes
 let legCondPct  = new Map();   // "a|b" -> percent
 let legCritical = new Map();   // "a|b" -> true (Yes) / false (No)
+
+// Holds the sum of leg times including Stops + Conditions
+let lastTotalAdjustedH = 0;
 
 // Helper to toggle visibility of main sections
 function showMainSections(show) {
@@ -281,11 +265,9 @@ calcBtn.addEventListener("click", async () => {
 
   renderRoadbooksTable();
 
-  // summary (prints)
-  outputEl.innerHTML = renderSummary({
-    totalDistKm, totalAscentM, totalDescentM, totalTimeHrs,
-    spacingM, smoothWinM, elevDeadbandM, rows: debugRows
-  });
+  // Refresh Summary using the latest cumulative arrays
+  updateSummaryCard();
+
 
   showMainSections(true);
 
@@ -412,6 +394,8 @@ function setLegLabelByKey(key, label) {
 function renderRoadbooksTable() {
   if (!trackLatLngs.length || roadbookIdx.length < 2) {
     roadbooksEl.innerHTML = "";
+    // keep summary consistent
+    updateSummaryCard();
     return;
   }
 
@@ -444,7 +428,9 @@ function renderRoadbooksTable() {
     legEntries.push({ idx: k, a, b, key, distKm, ascM, desM, baseH: timeH, stopsMin, condPct, totalH });
   }
 
+  // Save adjusted total for the Summary card
   const totalAdjustedH = legEntries.reduce((s, L) => s + L.totalH, 0);
+  lastTotalAdjustedH = totalAdjustedH;
 
   let html = `
     <p>Click the map to add waypoints; click a waypoint to remove it (locked ones won’t remove).
@@ -476,10 +462,10 @@ function renderRoadbooksTable() {
     cumDesMShown   += L.desM;
     cumTimeAdjH    += L.totalH;
 
-    const autoLabel   = getDefaultLegLabel(L.a, L.b);
+    const autoLabel    = getDefaultLegLabel(L.a, L.b);
     const displayLabel = legLabels.get(L.key) || autoLabel;
-    const remainingH  = totalAdjustedH - cumTimeAdjH;
-    const isCritical  = legCritical.get(L.key) ?? false;
+    const remainingH   = totalAdjustedH - cumTimeAdjH;
+    const isCritical   = legCritical.get(L.key) ?? false;
 
     html += `
       <tr>
@@ -526,6 +512,9 @@ function renderRoadbooksTable() {
   bindLegEditors();
   bindTimeEditors();
   bindCriticalEditors();
+
+  // ✅ Refresh Summary after any table rebuild (so totals stay in sync)
+  updateSummaryCard();
 }
 
 
@@ -973,40 +962,36 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-function renderSummary({ totalDistKm, totalAscentM, totalDescentM, totalTimeHrs, spacingM, smoothWinM, elevDeadbandM, rows }) {
-  return `
-    <h2>Results</h2>
+function updateSummaryCard() {
+  if (!trackLatLngs.length || cumDistKm.length === 0) {
+    outputEl.innerHTML = "";
+    return;
+  }
+
+  // Derive totals from the cumulative arrays
+  const totalDistKm    = cumDistKm[cumDistKm.length - 1]    ?? 0;
+  const totalAscentM   = cumAscentM[cumAscentM.length - 1]  ?? 0;
+  const totalDescentM  = cumDescentM[cumDescentM.length - 1]?? 0;
+  const activityTimeH  = cumTimeH[cumTimeH.length - 1]      ?? 0; // base time from the model
+  const totalTimeH     = lastTotalAdjustedH || activityTimeH;     // base + Stops/Cond
+
+  // For the little config line
+  const spacingM      = parseFloat(document.getElementById("spacingM")?.value)      || 5;
+  const smoothWinM    = parseFloat(document.getElementById("smoothWinM")?.value)    || 35;
+  const elevDeadbandM = parseFloat(document.getElementById("elevDeadbandM")?.value) || 2;
+
+  outputEl.innerHTML = `
     <ul>
-      <li><strong>Total distance:</strong> ${fmtKm(totalDistKm)}</li>
-      <li><strong>Total ascent:</strong> ${Math.round(totalAscentM)} m</li>
-      <li><strong>Total descent:</strong> ${Math.round(totalDescentM)} m</li>
-      <li><strong>Estimated time:</strong> ${fmtHrs(totalTimeHrs)}</li>
-      <li><em>Settings:</em> spacing=${spacingM} m, smooth=${smoothWinM} m, deadband=${elevDeadbandM} m</li>
+      <li><strong>Distance:</strong> ${fmtKm(totalDistKm)}</li>
+      <li><strong>Ascent:</strong> ${Math.round(totalAscentM)} m</li>
+      <li><strong>Descent:</strong> ${Math.round(totalDescentM)} m</li>
+      <li><strong>Estimated Activity Time:</strong> ${fmtHrs(activityTimeH)}</li>
+      <li><strong>Estimated Total Time:</strong> ${fmtHrs(totalTimeH)}</li>
     </ul>
-    <details>
-      <summary>Per-step details (resampled)</summary>
-      <table>
-        <thead>
-          <tr>
-            <th>#</th><th>Dist (km)</th><th>Δele smooth (m)</th><th>Δele filtered (m)</th><th>Ascent (m)</th><th>Descent (m)</th><th>Time (hh:mm)</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows.map((r, idx) => `
-            <tr>
-              <td>${idx + 1}</td>
-              <td>${r.distKm.toFixed(3)}</td>
-              <td>${r.dEleSmooth}</td>
-              <td>${r.dEleFiltered}</td>
-              <td>${Math.round(r.ascentM)}</td>
-              <td>${Math.round(r.descentM)}</td>
-              <td>${fmtHrs(r.segTimeH)}</td>
-            </tr>`).join("")}
-        </tbody>
-      </table>
-    </details>
+    <p class="subtle">Resample: ${spacingM} m • Smooth window: ${smoothWinM} m • Deadband: ${elevDeadbandM} m</p>
   `;
 }
+
 
 // ---------- Nearest point ----------
 function nearestIndexOnTrack([la, lo], latlngs) {
