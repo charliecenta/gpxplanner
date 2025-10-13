@@ -17,6 +17,55 @@ const loadInput = document.getElementById("loadPlanInput");
 const exportCsv = document.getElementById("exportCsvBtn");
 const printBtn  = document.getElementById("printBtn");
 
+// === Activity & Advanced Configuration (single source of truth) ===
+const activitySel = document.getElementById("activityType");
+const showAdvChk  = document.getElementById("showAdvanced");
+
+// Presets: spacing (m), smoothing window (m), flat speed (km/h), vertical speed (m/h), downhill factor
+const ACTIVITY_PRESETS = {
+  road:   { spacing: 5, smooth: 40, speedFlat: 24, speedVert: 900, dhf: 0.40 },   // Road cycling
+  mtb:    { spacing: 4, smooth: 20, speedFlat: 14, speedVert: 700, dhf: 0.60 },   // Mountain biking
+  hike:   { spacing: 3, smooth: 15, speedFlat:  4, speedVert: 300, dhf: 0.6667 }, // Hiking / trail
+};
+
+function applyActivityPreset(kind) {
+  const p = ACTIVITY_PRESETS[kind];
+  if (!p) return;
+
+  // Advanced fields
+  const spacingInput = document.getElementById("spacingM");
+  const smoothInput  = document.getElementById("smoothWinM");
+  if (spacingInput) spacingInput.value = p.spacing;
+  if (smoothInput)  smoothInput.value  = p.smooth;
+
+  // Pace model fields
+  const flat = document.getElementById("speedFlat");
+  const vert = document.getElementById("speedVert");
+  const dhf  = document.getElementById("downhillFactor");
+  if (flat) flat.value = p.speedFlat;
+  if (vert) vert.value = p.speedVert;
+  if (dhf)  dhf.value  = p.dhf;
+}
+
+// Advanced toggle: show/hide advanced fields
+if (showAdvChk) {
+  showAdvChk.addEventListener('change', () => {
+    const card = document.getElementById('settingsCard');
+    card?.classList.toggle('show-adv', showAdvChk.checked);
+  });
+  // default hidden
+  showAdvChk.checked = false;
+  document.getElementById('settingsCard')?.classList.remove('show-adv');
+}
+
+// Apply activity preset on change + initial preset
+if (activitySel) {
+  activitySel.addEventListener('change', () => applyActivityPreset(activitySel.value));
+  applyActivityPreset(activitySel.value || 'hike');
+}
+
+
+
 // ---------- Global state ----------
 let map, tileLayer, polyline, markers = [];
 let trackLatLngs = [];        // [[lat, lon], ...] (resampled)
@@ -66,6 +115,25 @@ function ensureMap() {
   });
 }
 ensureMap();
+
+// Advanced toggle: show/hide advanced fields
+if (showAdvChk) {
+  showAdvChk.addEventListener('change', () => {
+    const card = document.getElementById('settingsCard');
+    card?.classList.toggle('show-adv', showAdvChk.checked);
+  });
+  // default hidden (unchecked)
+  showAdvChk.checked = false;
+  document.getElementById('settingsCard')?.classList.remove('show-adv');
+}
+
+// Apply activity preset on change
+if (activitySel) {
+  activitySel.addEventListener('change', () => applyActivityPreset(activitySel.value));
+  // Initial preset on load
+  applyActivityPreset(activitySel.value || 'hike');
+}
+
 
 // ---------- Main flow ----------
 calcBtn.addEventListener("click", async () => {

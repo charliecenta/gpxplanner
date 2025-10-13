@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Route Time Estimator</title>
+  <title>GPX Planner</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Leaflet (live map only; map is not printed) -->
@@ -16,7 +16,7 @@
 </head>
 <body>
   <header class="wrap">
-    <h1>Route Time Estimator</h1>
+    <h1>GPX Planner</h1>
     <button id="printBtn" disabled>Print</button>
   </header>
 
@@ -24,12 +24,25 @@
     <!-- Controls -->
     <section class="card" id="settingsCard">
       <h2>Plan settings</h2>
+
       <div class="controls" id="controls">
+        <!-- File -->
         <label class="field file">
           <span>GPX file</span>
           <input type="file" id="gpxFile" accept=".gpx" />
         </label>
 
+        <!-- Activity preset -->
+        <label class="field">
+          <span>Activity</span>
+          <select id="activityType">
+            <option value="hike" selected>Hiking / trail</option>
+            <option value="mtb">Mountain biking</option>
+            <option value="road">Road cycling</option>
+          </select>
+        </label>
+
+        <!-- Pace model -->
         <label class="field">
           <span>Flat speed (km/h)</span>
           <input type="number" id="speedFlat" step="0.1" value="4" />
@@ -45,17 +58,24 @@
           <input type="number" id="downhillFactor" step="0.01" value="0.6667" />
         </label>
 
-        <label class="field">
+        <!-- Advanced toggle -->
+        <label class="field checkbox">
+          <input type="checkbox" id="showAdvanced" />
+          <span>Show advanced configuration</span>
+        </label>
+
+        <!-- Advanced fields (hidden by default) -->
+        <label class="field advanced">
           <span>Resample (m)</span>
-          <input type="number" id="spacingM" step="1" value="5" />
+          <input type="number" id="spacingM" step="1" value="3" />
         </label>
 
-        <label class="field">
+        <label class="field advanced">
           <span>Smooth window (m)</span>
-          <input type="number" id="smoothWinM" step="1" value="35" />
+          <input type="number" id="smoothWinM" step="1" value="15" />
         </label>
 
-        <label class="field">
+        <label class="field advanced">
           <span>Elevation deadband (m)</span>
           <input type="number" id="elevDeadbandM" step="1" value="2" />
         </label>
@@ -97,7 +117,6 @@
       <h2>Roadbooks</h2>
       <div id="roadbooks" class="table-wrap"></div>
     </section>
-
   </main>
 
   <!-- Leaflet JS -->

@@ -164,6 +164,20 @@ th:last-child, td:last-child { border-right: none; }
   overflow-wrap: anywhere;  /* support modern browsers */
 }
 
+/* Advanced fields start hidden unless the card has .show-adv */
+#settingsCard .advanced { display: none; }
+#settingsCard.show-adv .advanced { display: grid; }
+
+/* Basic select styling to match inputs */
+.controls select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d9d9e6;
+  border-radius: 8px;
+  background: #fff;
+}
+
+
 /* ---- Print: show only itinerary (Summary + Roadbooks) ---- */
 @media print {
   body {
