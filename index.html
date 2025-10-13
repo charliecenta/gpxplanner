@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Route Time Estimator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Leaflet (live map only; map is not printed) -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="wrap">
+    <h1>Route Time Estimator</h1>
+    <button id="printBtn" disabled>Print</button>
+  </header>
+
+  <main class="wrap">
+    <!-- Controls -->
+    <section class="card" id="settingsCard">
+      <h2>Plan settings</h2>
+      <div class="controls" id="controls">
+        <label class="field file">
+          <span>GPX file</span>
+          <input type="file" id="gpxFile" accept=".gpx" />
+        </label>
+
+        <label class="field">
+          <span>Flat speed (km/h)</span>
+          <input type="number" id="speedFlat" step="0.1" value="4" />
+        </label>
+
+        <label class="field">
+          <span>Vertical speed (m/h)</span>
+          <input type="number" id="speedVert" step="10" value="300" />
+        </label>
+
+        <label class="field break">
+          <span>Downhill factor</span>
+          <input type="number" id="downhillFactor" step="0.01" value="0.6667" />
+        </label>
+
+        <label class="field">
+          <span>Resample (m)</span>
+          <input type="number" id="spacingM" step="1" value="5" />
+        </label>
+
+        <label class="field">
+          <span>Smooth window (m)</span>
+          <input type="number" id="smoothWinM" step="1" value="35" />
+        </label>
+
+        <label class="field">
+          <span>Elevation deadband (m)</span>
+          <input type="number" id="elevDeadbandM" step="1" value="2" />
+        </label>
+
+        <label class="field checkbox">
+          <input type="checkbox" id="importRoadbooks" checked />
+          <span>Import roadbooks from GPX</span>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="calculateBtn" class="primary">Process GPX</button>
+        <button id="clearRoadbooksBtn" disabled>Clear roadbooks</button>
+
+        <span class="spacer"></span>
+
+        <button id="savePlanBtn" disabled>Save</button>
+        <button id="loadPlanBtn">Load</button>
+        <input type="file" id="loadPlanInput" accept=".json" hidden />
+        <button id="exportCsvBtn" disabled>Export CSV</button>
+      </div>
+    </section>
+
+    <!-- Map + Summary -->
+    <section class="grid">
+      <div class="card is-hidden" id="mapCard">
+        <h2>Map</h2>
+        <div id="map" class="map" role="img" aria-label="Route map"></div>
+      </div>
+
+      <div class="card is-hidden" id="summaryCard">
+        <h2>Summary</h2>
+        <div id="output"></div>
+      </div>
+    </section>
+
+    <!-- Roadbooks -->
+    <section class="card is-hidden" id="roadbooksCard">
+      <h2>Roadbooks</h2>
+      <div id="roadbooks" class="table-wrap"></div>
+    </section>
+
+  </main>
+
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script src="script.js"></script>
+</body>
+</html>

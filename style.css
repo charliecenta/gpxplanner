@@ -1,0 +1,216 @@
+/* ---- Base ---- */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: #1a1a1a;
+  background: #f7f7fb;
+}
+/* ---- Hidden on load ---- */
+.is-hidden { display: none !important; }
+
+/* ---- Layout wrappers ---- */
+.wrap {
+  max-width: 1100px;
+  width: 92vw;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* ---- Header ---- */
+header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+}
+h1 { margin: 0; font-size: 20px; }
+
+/* ---- Cards ---- */
+.card {
+  background: #fff;
+  border: 1px solid #e6e6ee;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+.card h2 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+/* ---- Controls (flex wrap) ---- */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.field {
+  display: grid;
+  gap: 6px;
+  min-width: 200px;
+  flex: 1 1 240px;
+}
+.field.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 240px;
+  min-width: 220px;
+}
+.field input[type="number"],
+.field input[type="file"] {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d9d9e6;
+  border-radius: 8px;
+  background: #fff;
+}
+.field.break { flex-basis: 100%; } /* downhill factor starts a new row */
+
+/* ---- Actions ---- */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.actions .spacer { flex: 1; }
+
+button {
+  appearance: none;
+  border: 1px solid #d9d9e6;
+  background: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+button.primary {
+  background: #2a7de1;
+  border-color: #2a7de1;
+  color: #fff;
+}
+button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ---- Grid (map + summary) ---- */
+.grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1.2fr 0.8fr;
+}
+@media (max-width: 960px) {
+  .grid { grid-template-columns: 1fr; }
+}
+
+/* ---- Map ---- */
+.map {
+  height: 420px;
+  width: 100%;
+  border: 1px solid #e6e6ee;
+  border-radius: 8px;
+  background: #fff;
+}
+
+/* ---- Table area ---- */
+.table-wrap { overflow-x: auto; }   /* never overflow the viewport horizontally */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border: 1px solid #e6e6ee;
+  border-radius: 8px;
+}
+thead th {
+  background: #f3f4f8;
+  border-bottom: 1px solid #e6e6ee;
+  text-align: right;
+}
+th, td {
+  padding: 8px 10px;
+  border-right: 1px solid #efeff6;
+  white-space: nowrap;
+  text-align: right;
+}
+th:first-child, td:first-child { text-align: center; }
+th:nth-child(2), td:nth-child(2) { text-align: left; }
+th:last-child, td:last-child { border-right: none; }
+
+/* Editable cells (your JS attaches contenteditable) */
+.leg-cell .leg-name,
+.editable {
+  border-bottom: 1px dashed #bbb;
+  cursor: text;
+}
+.leg-cell .leg-name:focus,
+.editable:focus {
+  outline: 2px solid #2a7de1;
+  border-bottom-color: transparent;
+}
+/* Smaller, cleaner table text */
+#roadbooks table {
+  font-size: 13px;
+}
+#roadbooks th,
+#roadbooks td {
+  padding: 6px 8px;
+}
+/* Limit wide columns and allow wrapping */
+#roadbooks th,
+#roadbooks td {
+  max-width: 200px;         /* don't let any cell exceed this width */
+  white-space: normal;      /* allow wrapping */
+  word-break: break-word;   /* break long strings (e.g., names) */
+  overflow-wrap: anywhere;  /* support modern browsers */
+}
+
+/* ---- Print: show only itinerary (Summary + Roadbooks) ---- */
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  /* Hide header, settings card, map card, and action rows */
+  header,
+  #settingsCard,
+  #mapCard,
+  .controls,
+  .actions,
+  .map {
+    display: none !important;
+  }
+
+  /* Expand content fully for print */
+  .wrap {
+    max-width: none;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Remove shadows and borders on print cards */
+  .card {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 0 10px 0;
+    padding: 8px;
+    page-break-inside: avoid;
+  }
+
+  /* Compact, clean tables for paper */
+  #roadbooks table {
+    font-size: 11px;
+    border: none;
+    width: 100%;
+  }
+  #roadbooks th,
+  #roadbooks td {
+    padding: 3px 5px;
+    border: none;
+    max-width: 200px;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+}
