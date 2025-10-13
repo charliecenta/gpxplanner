@@ -127,10 +127,23 @@ calcBtn.addEventListener("click", async () => {
     const elevSmooth = medianFilter(elev, winSamples);
     const elevFiltered = cumulativeDeadbandFilter(elevSmooth, elevDeadbandM);
 
+    // Mark where this segment starts in the global point list
     trackBreakIdx.push(trackLatLngs.length);
+
+    // ✅ Keep cumulative arrays aligned with points at segment boundaries.
+    // If we already have points, push a carry-forward so cum* arrays gain +1 here.
+    if (trackLatLngs.length > 0) {
+      cumDistKm.push(cumDistKm[cumDistKm.length - 1]);
+      cumAscentM.push(cumAscentM[cumAscentM.length - 1]);
+      cumDescentM.push(cumDescentM[cumDescentM.length - 1]);
+      cumTimeH.push(cumTimeH[cumTimeH.length - 1]);
+    }
+
+    // Append this segment’s coordinates (points count +n)
     const latlngs = resampled.map(p => [p.lat, p.lon]);
     trackLatLngs = trackLatLngs.concat(latlngs);
 
+    // Accumulate per-step values (steps count +(n-1))
     for (let i = 1; i < resampled.length; i++) {
       const curIdx  = globalIdxOffset + i;
 
@@ -154,6 +167,7 @@ calcBtn.addEventListener("click", async () => {
       totalDescentM += descentM;
       totalTimeHrs  += segTimeH;
 
+      // cum* arrays gain +1 per step here
       cumDistKm.push(cumDistKm[cumDistKm.length - 1] + distKm);
       cumAscentM.push(cumAscentM[cumAscentM.length - 1] + ascentM);
       cumDescentM.push(cumDescentM[cumDescentM.length - 1] + descentM);
@@ -170,8 +184,10 @@ calcBtn.addEventListener("click", async () => {
       });
     }
 
+    // Advance global index by number of points in this segment
     globalIdxOffset += resampled.length;
   }
+
 
   // draw polyline on live map
   if (polyline) polyline.remove();
@@ -253,7 +269,16 @@ if (printBtn) {
 function addRoadbookIndex(i, opts = {}) {
   const { noRender = false, label = "", locked = false } = opts;
   i = Math.max(0, Math.min(trackLatLngs.length - 1, Math.round(i)));
-  if (roadbookIdx.includes(i)) return;
+
+  // If this index already exists, optionally update its label and return.
+  if (roadbookIdx.includes(i)) {
+    const newLabel = (label || "").trim();
+    if (newLabel && (!roadbookLabels.get(i) || roadbookLabels.get(i) === `#${i}`)) {
+      setRoadbookLabel(i, newLabel);
+    }
+    if (!noRender) renderRoadbooksTable();
+    return;
+  }
 
   roadbookIdx.push(i);
   roadbookIdx.sort((a, b) => a - b);
@@ -289,6 +314,7 @@ function addRoadbookIndex(i, opts = {}) {
   if (!noRender) renderRoadbooksTable();
 }
 
+
 function clearMarkers() { markers.forEach(m => m.remove()); markers = []; }
 
 function setRoadbookLabel(idx, newLabel) {
@@ -321,16 +347,27 @@ function renderRoadbooksTable() {
     return;
   }
 
+  const lastIdx = trackLatLngs.length - 1;
+
   const legEntries = [];
   for (let k = 1; k < roadbookIdx.length; k++) {
-    const a = roadbookIdx[k - 1];
-    const b = roadbookIdx[k];
+    // Clamp leg endpoints into valid range (belt & braces)
+    const aRaw = roadbookIdx[k - 1];
+    const bRaw = roadbookIdx[k];
+    const a = Math.max(0, Math.min(aRaw, lastIdx));
+    const b = Math.max(0, Math.min(bRaw, lastIdx));
     const key = getLegKey(a, b);
 
-    const distKm = cumDistKm[b] - cumDistKm[a];
-    const ascM   = cumAscentM[b] - cumAscentM[a];
-    const desM   = cumDescentM[b] - cumDescentM[a];
-    const timeH  = cumTimeH[b] - cumTimeH[a];
+    // Safely read cumulative arrays
+    const dA = cumDistKm[a]   ?? 0, dB = cumDistKm[b]   ?? dA;
+    const uA = cumAscentM[a]  ?? 0, uB = cumAscentM[b]  ?? uA;
+    const vA = cumDescentM[a] ?? 0, vB = cumDescentM[b] ?? vA;
+    const tA = cumTimeH[a]    ?? 0, tB = cumTimeH[b]    ?? tA;
+
+    const distKm = dB - dA;
+    const ascM   = uB - uA;
+    const desM   = vB - vA;
+    const timeH  = tB - tA;
 
     const stopsMin = legStopsMin.get(key) ?? 0;
     const condPct  = legCondPct.get(key) ?? 0;
@@ -371,12 +408,10 @@ function renderRoadbooksTable() {
     cumDesMShown   += L.desM;
     cumTimeAdjH    += L.totalH;
 
-    const autoLabel = getDefaultLegLabel(L.a, L.b);
+    const autoLabel   = getDefaultLegLabel(L.a, L.b);
     const displayLabel = legLabels.get(L.key) || autoLabel;
-    const remainingH = totalAdjustedH - cumTimeAdjH;
-
-    // ✅ moved here: per-row critical value
-    const isCritical = legCritical.get(L.key) ?? false;
+    const remainingH  = totalAdjustedH - cumTimeAdjH;
+    const isCritical  = legCritical.get(L.key) ?? false;
 
     html += `
       <tr>
@@ -424,6 +459,7 @@ function renderRoadbooksTable() {
   bindTimeEditors();
   bindCriticalEditors();
 }
+
 
 
 // ---------- Editors ----------
@@ -497,15 +533,24 @@ function serializePlan() {
   const legs = [];
   let cumDistKmShown = 0, cumAscMShown = 0, cumDesMShown = 0, cumTimeAdjH = 0;
 
+  const lastIdx = trackLatLngs.length - 1;
+
   for (let k = 1; k < roadbookIdx.length; k++) {
-    const a = roadbookIdx[k - 1];
-    const b = roadbookIdx[k];
+    const aRaw = roadbookIdx[k - 1];
+    const bRaw = roadbookIdx[k];
+    const a = Math.max(0, Math.min(aRaw, lastIdx));
+    const b = Math.max(0, Math.min(bRaw, lastIdx));
     const key = getLegKey(a, b);
 
-    const distKm = cumDistKm[b] - cumDistKm[a];
-    const ascM   = cumAscentM[b] - cumAscentM[a];
-    const desM   = cumDescentM[b] - cumDescentM[a];
-    const baseH  = cumTimeH[b] - cumTimeH[a];
+    const dA = cumDistKm[a]   ?? 0, dB = cumDistKm[b]   ?? dA;
+    const uA = cumAscentM[a]  ?? 0, uB = cumAscentM[b]  ?? uA;
+    const vA = cumDescentM[a] ?? 0, vB = cumDescentM[b] ?? vA;
+    const tA = cumTimeH[a]    ?? 0, tB = cumTimeH[b]    ?? tA;
+
+    const distKm = dB - dA;
+    const ascM   = uB - uA;
+    const desM   = vB - vA;
+    const baseH  = tB - tA;
 
     const stopsMin = legStopsMin.get(key) ?? 0;
     const condPct  = legCondPct.get(key) ?? 0;
@@ -545,10 +590,11 @@ function serializePlan() {
     legLabels: Object.fromEntries(legLabels),
     legStopsMin: Object.fromEntries(legStopsMin),
     legCondPct: Object.fromEntries(legCondPct),
-    legCritical: Object.fromEntries(legCritical),   // ✅ moved here (top-level)
+    legCritical: Object.fromEntries(legCritical),
     legs
   };
 }
+
 
 
 function restorePlanFromJSON(plan) {

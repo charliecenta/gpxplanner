@@ -124,7 +124,7 @@ table {
 thead th {
   background: #f3f4f8;
   border-bottom: 1px solid #e6e6ee;
-  text-align: right;
+  text-align: center;
 }
 th, td {
   padding: 8px 10px;
