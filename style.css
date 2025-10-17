@@ -68,6 +68,66 @@ h1 { margin: 0; font-size: 20px; }
   background: #fff;
 }
 .field.break { flex-basis: 100%; } /* downhill factor starts a new row */
+/* --- Inline label + help icon --- */
+.label-row{
+  display:flex; align-items:center; gap:6px;
+}
+
+/* --- Help tooltip button --- */
+.help-tip{
+  --tip-bg: #111;
+  --tip-fg: #fff;
+  --tip-border: rgba(0,0,0,0.2);
+
+  appearance:none; border:0; padding:0;
+  display:inline-grid; place-items:center;
+  width:16px; height:16px; border-radius:50%;
+  background:#e8eaf2; color:#333; font-weight:700;
+  font-size:11px; line-height:1; cursor:help;
+  position:relative;
+}
+@media (prefers-color-scheme: dark){
+  .help-tip{ background:#2e3344; color:#e7ecf5; }
+}
+
+/* Bubble */
+.help-tip::after{
+  content: attr(data-tip);
+  position:absolute;
+  z-index:10;
+  left:0; top:130%;
+  min-width:180px; max-width:280px;
+  padding:8px 10px; border-radius:8px;
+  background: var(--tip-bg);
+  color: var(--tip-fg);
+  border: 1px solid var(--tip-border);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+  font-size:12px; line-height:1.25;
+  white-space: normal;
+  opacity:0; transform: translateY(4px);
+  pointer-events:none;
+  transition: opacity .12s ease, transform .12s ease;
+}
+
+/* Caret */
+.help-tip::before{
+  content:"";
+  position:absolute; left:6px; top:120%;
+  width:8px; height:8px; transform: rotate(45deg);
+  background: var(--tip-bg);
+  border-left:1px solid var(--tip-border);
+  border-top:1px solid var(--tip-border);
+  opacity:0; transition: opacity .12s ease;
+}
+
+/* Show on hover/focus */
+.help-tip:hover::after,
+.help-tip:focus-visible::after,
+.help-tip:hover::before,
+.help-tip:focus-visible::before{
+  opacity:1; transform: translateY(0);
+}
+
 
 /* ---- Actions ---- */
 .actions {
