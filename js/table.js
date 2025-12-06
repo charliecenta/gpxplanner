@@ -293,21 +293,6 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
   const toX = (d) => padX + (d / totalDist) * innerW;
   const toY = (e) => padTop + (1 - ((e - minElev) / elevRange)) * innerH;
 
-  const first = pairs[0];
-  let areaD = `M ${toX(first.d).toFixed(1)} ${baseY.toFixed(1)} L ${toX(first.d).toFixed(1)} ${toY(first.e).toFixed(1)}`;
-  let lineD = `M ${toX(first.d).toFixed(1)} ${toY(first.e).toFixed(1)}`;
-
-  for (let i = 1; i < pairs.length; i++) {
-    const { d, e } = pairs[i];
-    const x = toX(d).toFixed(1);
-    const y = toY(e).toFixed(1);
-    areaD += ` L ${x} ${y}`;
-    lineD += ` L ${x} ${y}`;
-  }
-
-  const last = pairs[pairs.length - 1];
-  areaD += ` L ${toX(last.d).toFixed(1)} ${baseY.toFixed(1)} Z`;
-
   const kmLabel = `${totalDist.toFixed(2)} km`;
   const elevLabel = `${Math.round(minElev)}–${Math.round(maxElev)} m`;
 
@@ -343,10 +328,26 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
     };
   })();
 
+  const first = pairs[0];
   const profileId = `elev-${++elevationProfileId}`;
   const gradId = `elev-fill-${profileId}`;
   const cursorStartX = toX(first.d).toFixed(1);
   const cursorStartY = toY(first.e).toFixed(1);
+
+  const fillBaseY = verticalSpan.bottom;
+  let areaD = `M ${toX(first.d).toFixed(1)} ${fillBaseY.toFixed(1)} L ${toX(first.d).toFixed(1)} ${toY(first.e).toFixed(1)}`;
+  let lineD = `M ${toX(first.d).toFixed(1)} ${toY(first.e).toFixed(1)}`;
+
+  for (let i = 1; i < pairs.length; i++) {
+    const { d, e } = pairs[i];
+    const x = toX(d).toFixed(1);
+    const y = toY(e).toFixed(1);
+    areaD += ` L ${x} ${y}`;
+    lineD += ` L ${x} ${y}`;
+  }
+
+  const last = pairs[pairs.length - 1];
+  areaD += ` L ${toX(last.d).toFixed(1)} ${fillBaseY.toFixed(1)} Z`;
 
   const rbMarkers = validRoadbooks.map(rb => ({
     x: toX(rb.distKm),
