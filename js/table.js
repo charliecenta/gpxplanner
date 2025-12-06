@@ -297,7 +297,6 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
   const elevLabel = `${Math.round(minElev)}–${Math.round(maxElev)} m`;
 
   const distStepBase = chooseStep(totalDist, 5);
-  const elevStep = chooseStep(elevRange, 5);
   const minLabelSpacing = 70;
   const maxDistTicks = Math.max(3, Math.floor(innerW / minLabelSpacing));
   const makeTicks = (step) => {
@@ -313,10 +312,22 @@ function renderElevationProfile({ distKm = [], elevM = [], title = '', roadbooks
     distStep *= 2;
     distTicks = makeTicks(distStep);
   }
-  const elevTicks = [];
-  const elevStart = Math.floor(minElev / elevStep) * elevStep;
-  for (let e = elevStart; e <= maxElev + elevStep * 0.5; e += elevStep) {
-    elevTicks.push(e);
+  const minElevLabelSpacing = 32;
+  const maxElevTicks = Math.max(3, Math.floor(innerH / minElevLabelSpacing));
+  const makeElevTicks = (step) => {
+    const elevTicks = [];
+    const elevStart = Math.floor(minElev / step) * step;
+    for (let e = elevStart; e <= maxElev + step * 0.5; e += step) {
+      elevTicks.push(e);
+    }
+    return elevTicks;
+  };
+
+  let elevStep = chooseStep(elevRange, 5);
+  let elevTicks = makeElevTicks(elevStep);
+  while (elevTicks.length > maxElevTicks) {
+    elevStep *= 2;
+    elevTicks = makeElevTicks(elevStep);
   }
 
   const verticalSpan = (() => {
